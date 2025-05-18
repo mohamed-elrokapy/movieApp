@@ -22,7 +22,7 @@ This is a responsive and dynamic **Movie App** built with **React**, **Tailwind 
 - 🧱 **Material Tailwind**
 - 🔄 **Axios** (for API requests)
 - 🧭 **React Router DOM**
-- 🧠 **React Context API** (if applicable for language or theme)
+- 🧠 **redux-redux toolkit** 
 - 🌐 **TheMovieDB API**
 
 ## 📁 Folder Structure
