@@ -1,4 +1,4 @@
-# 🎬 Movie App
+# 🎬 Movie-series App
 
 This is a responsive and dynamic **Movie App** built with **React**, **Tailwind CSS**, and **Material Tailwind**. It fetches real-time movie data using the [TheMovieDB API](https://www.themoviedb.org/documentation/api), allowing users to browse movies, view detailed information, and enjoy a smooth, clean UI.
 
@@ -7,13 +7,12 @@ This is a responsive and dynamic **Movie App** built with **React**, **Tailwind 
 🔗 [View the Live Site](https://movie-app-mohamed-elrokapy.vercel.app)
 
 ## 📌 Features
-
-- 🔍 Search for movies
-- 📝 View movie details (title, poster, overview, rating, release date, etc.)
-- 🎞️ Browse trending/popular movies
-- 💡 Responsive design (Mobile, Tablet, Desktop)
-- 🎥 Movie details fetched in real-time from TheMovieDB API
-- 🧑 Built with reusable and clean components
+-🔍 Search for movies and TV series
+-📝 View detailed info (title, poster, overview, rating, release date, etc.)
+-🎞️ Browse trending/popular movies and series
+-💡 Fully responsive design (Mobile, Tablet, Desktop)
+-🎥 Real-time data fetched from TheMovieDB API
+-🧑 Built with clean and reusable components
 
 ## 🛠️ Tech Stack
 
