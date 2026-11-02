@@ -1,3 +1,4 @@
+import { TMDB_AUTH } from "../../../api/tmdb";
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
 
@@ -10,7 +11,7 @@ export const getonepagemovies = createAsyncThunk(
         method: "get",
         headers: {
           Authorization:
-            "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI1MDdmZGZlYWU0OGU4N2U0NTQ4YTM5ZmZkZjczYmU3NiIsIm5iZiI6MTc0NTYwMzQ2OC42MDcsInN1YiI6IjY4MGJjYjhjOGJjZWE2NmE4NmFiMDQ0MCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.fcri0wbTR6owlEOMJmZVOYPPUKpPm2vHqUCwEtqGAw8",
+            TMDB_AUTH,
           accept: "application/json",
         },
       };
