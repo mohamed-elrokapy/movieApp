@@ -1,3 +1,4 @@
+import { TMDB_AUTH } from "../../../api/tmdb";
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
 export const fetchTvShows = createAsyncThunk(
@@ -10,10 +11,13 @@ export const fetchTvShows = createAsyncThunk(
         headers: {
           accept: "application/json",
           Authorization:
-            "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI1Mzg4Y2MzZjRlZjBkODYxNmQ1MDdiYmFjNWIxNWJhZiIsIm5iZiI6MTc0NTI1MTQ0MC40NjEsInN1YiI6IjY4MDY2YzcwYzNlOGU3NGI2ZGVlNTliZSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.o0ydamGJC2iTKEwwEDGsNBWRyZNe6YEcPdUMS1ZOkjY", // ضع هنا مفتاح API الفعلي
+            TMDB_AUTH,
         },
       }
     );
+    if (!response.ok) {
+      throw new Error("Failed to fetch airing series");
+    }
     const data = await response.json();
     return data.results.slice(0, 20);
   }

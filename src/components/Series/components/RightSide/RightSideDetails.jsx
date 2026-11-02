@@ -1,108 +1,104 @@
 import { useSelector, useDispatch } from "react-redux";
-import { FaHome, FaVideo } from "react-icons/fa";
-import { Link } from "react-router-dom";
+import { FaHome } from "react-icons/fa";
+import { SiThemoviedatabase } from "react-icons/si";
 import { useEffect } from "react";
 import { getSeriesKeywords } from "../../../Redux/DetailsSeriesSlice/DetailsSeriesSlice";
 
+const linkClass =
+  "flex h-10 w-10 items-center justify-center rounded-full border border-line text-gray-200 transition-colors hover:border-accent hover:text-accent";
+
 const RightSideDetails = () => {
   const dispatch = useDispatch();
-  const seriesDetails = useSelector(
-    (state) => state.SeriesDetails.seriesDetails
-  );
-  const seriesKeywords = useSelector(
-    (state) => state.SeriesDetails.seriesKeywords
-  );
-  const seriesKeywordsError = useSelector(
+  const series = useSelector((state) => state.SeriesDetails.seriesDetails);
+  const keywords = useSelector((state) => state.SeriesDetails.seriesKeywords);
+  const keywordsError = useSelector(
     (state) => state.SeriesDetails.seriesKeywordsError
-  );
-  const languages = useSelector(
-    (state) => state.SeriesDetails.seriesDetails?.spoken_languages
   );
 
   useEffect(() => {
-    if (seriesDetails?.id) {
-      dispatch(getSeriesKeywords(seriesDetails.id));
-    }
-  }, [dispatch, seriesDetails]);
+    if (series?.id) dispatch(getSeriesKeywords(series.id));
+  }, [dispatch, series?.id]);
 
-  const tmdbUrl = seriesDetails?.id
-    ? `https://www.themoviedb.org/tv/${seriesDetails.id}`
-    : "";
-
-  const homepageUrl = seriesDetails?.homepage || "";
-
-  const languageInfo = languages?.find(
-    (lang) => lang.iso_639_1 == seriesDetails?.original_language
+  const language = series?.spoken_languages?.find(
+    (l) => l.iso_639_1 === series?.original_language
   );
-  const languageDisplay = languageInfo
-    ? `${seriesDetails?.original_language?.toUpperCase()}: ${
-        languageInfo.english_name
-      }: ${languageInfo.name}`
-    : "Not available";
+
+  const facts = [
+    ["Original name", series?.original_name],
+    ["Status", series?.status],
+    ["Network", series?.networks?.[0]?.name],
+    ["Type", series?.type],
+    [
+      "Original language",
+      language
+        ? language.english_name
+        : series?.original_language?.toUpperCase(),
+    ],
+  ];
 
   return (
-    <div className="p-4 rounded text-white w-full">
-      <div className="flex space-x-4 mb-4">
-        <Link
-          to={homepageUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-400 hover:text-blue-300"
-        >
-          <FaHome size={20} />
-        </Link>
-        <Link
-          to={tmdbUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-600 hover:text-blue-400"
-        >
-          <FaVideo size={20} />
-        </Link>
-      </div>
-
-      <h3 className="text-white text-lg font-semibold mb-2">Original Name</h3>
-      <p className="mb-4 text-blue-400">
-        {seriesDetails?.original_name || "Not available"}
-      </p>
-
-      <h3 className="text-white text-lg font-semibold mb-2">Status</h3>
-      <p className="mb-4 text-blue-400">
-        {seriesDetails?.status || "Not available"}
-      </p>
-
-      <h3 className="text-white text-lg font-semibold mb-2">Network</h3>
-      <p className="mb-4 text-blue-400">
-        {seriesDetails?.networks && seriesDetails.networks.length > 0
-          ? seriesDetails.networks[0].name || "Not available"
-          : "Not available"}
-      </p>
-
-      <h3 className="text-white text-lg font-semibold mb-2">Type</h3>
-      <p className="mb-4 text-blue-400">
-        {seriesDetails?.type || "Not available"}
-      </p>
-
-      <h3 className="text-white text-lg font-semibold mb-2">
-        Original Language
-      </h3>
-      <p className="mb-4 text-blue-400">{languageDisplay}</p>
-
-      <h3 className="text-blue-400 text-lg font-semibold mb-2">Keywords</h3>
-      <div className="flex flex-wrap gap-2 mb-4">
-        {seriesKeywordsError ? (
-          <p className="text-red-400">Error: {seriesKeywordsError}</p>
-        ) : seriesKeywords && seriesKeywords.length > 0 ? (
-          seriesKeywords.map((keyword) => (
-            <span
-              key={keyword.id}
-              className="bg-white hover:scale-125 text-black hover:text-light-blue-700 hover:cursor-pointer px-2 py-1 rounded text-sm"
+    <div className="space-y-5">
+      <ul className="flex gap-3">
+        {series?.homepage && (
+          <li>
+            <a
+              href={series.homepage}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Official site"
+              title="Official site"
+              className={linkClass}
             >
-              {keyword.name}
-            </span>
-          ))
+              <FaHome aria-hidden="true" className="h-4 w-4" />
+            </a>
+          </li>
+        )}
+        {series?.id && (
+          <li>
+            <a
+              href={`https://www.themoviedb.org/tv/${series.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="View on TMDB"
+              title="View on TMDB"
+              className={linkClass}
+            >
+              <SiThemoviedatabase aria-hidden="true" className="h-4 w-4" />
+            </a>
+          </li>
+        )}
+      </ul>
+
+      <dl className="space-y-3">
+        {facts.map(([k, v]) => (
+          <div key={k}>
+            <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
+              {k}
+            </dt>
+            <dd className="text-sm text-gray-100">{v || "Not available"}</dd>
+          </div>
+        ))}
+      </dl>
+
+      <div>
+        <h2 className="mb-3 font-display text-xl font-semibold text-gray-50">
+          Keywords
+        </h2>
+        {keywordsError ? (
+          <p className="text-sm text-gray-400">Keywords could not be loaded.</p>
+        ) : keywords?.length > 0 ? (
+          <ul className="flex flex-wrap gap-2">
+            {keywords.map((k) => (
+              <li
+                key={k.id}
+                className="rounded-full border border-line bg-white/5 px-3 py-1 text-xs text-gray-200"
+              >
+                {k.name}
+              </li>
+            ))}
+          </ul>
         ) : (
-          <p className="text-blue-400">No keywords available</p>
+          <p className="text-sm text-gray-400">No keywords available.</p>
         )}
       </div>
     </div>

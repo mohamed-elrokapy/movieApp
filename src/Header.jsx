@@ -1,526 +1,300 @@
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { IoMenu, IoClose } from "react-icons/io5";
-import { Link, useNavigate, useLocation } from "react-router-dom";
-import {
-  Navbar,
-  Collapse,
-  Typography,
-  IconButton,
-  Button,
-} from "@material-tailwind/react";
-import { useDispatch, useSelector } from "react-redux";
+import { useEffect, useId, useRef, useState } from "react";
+import { Link, NavLink, useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { HiBars3, HiXMark, HiMagnifyingGlass } from "react-icons/hi2";
 import { getMoviebySearch } from "./components/Redux/DetailsMoviesSlice/movieDetailsSlice";
 import { getSeriesBySearch } from "./components/Redux/DetailsSeriesSlice/DetailsSeriesSlice";
+import { tmdbImage } from "./api/tmdb";
+import { yearOf } from "./utils/format";
 
-const NavList = () => (
-  <ul className="flex flex-col lg:flex-row lg:items-center gap-2 lg:gap-6">
-    {[
-      { label: "Home", to: "/" },
-      { label: "Movies", to: "/movies" },
-      { label: "Series", to: "/series" },
-      { label: "Contact Us", to: "/contact-us" },
-    ].map(({ label, to }) => (
-      <Typography
-        as={Link}
-        to={to}
-        key={label}
-        variant="small"
-        className="p-1 font-medium text-white hover:text-light-blue-900 transition"
-      >
-        {label}
-      </Typography>
-    ))}
-  </ul>
-);
+const LINKS = [
+  { label: "Home", to: "/", end: true },
+  { label: "Movies", to: "/movies" },
+  { label: "Series", to: "/series" },
+  { label: "Contact", to: "/contact-us" },
+];
 
-const Header = () => {
-  const [openNav, setOpenNav] = useState(false);
-  const [searchType, setSearchType] = useState("Movies");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [suggestions, setSuggestions] = useState([]);
-  const [isSuggestionsVisible, setSuggestionsVisible] = useState(false);
-  const [selectedItemId, setSelectedItemId] = useState(null);
-  const [error, setError] = useState(null);
-  const searchRef = useRef(null);
+const linkClass = ({ isActive }) =>
+  `rounded px-2 py-1.5 text-sm font-medium transition-colors ${
+    isActive ? "text-accent" : "text-gray-300 hover:text-gray-50"
+  }`;
+
+const titleOf = (item) =>
+  item.title || item.name || item.original_name || "Untitled";
+
+function SearchBox({ idPrefix, onNavigate }) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const location = useLocation();
+  const listId = `${idPrefix}-listbox`;
+  const [type, setType] = useState("movies");
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(-1);
+  const [failed, setFailed] = useState(false);
+  const requestId = useRef(0);
+  const root = useRef(null);
 
-  const { MoviebySearch, getMoviebySearchError } = useSelector(
-    (state) => state.onemoviedetails
-  );
-  const { getSeriesBySearch: seriesSearchData, getSeriesBySearchError } =
-    useSelector((state) => state.SeriesDetails);
-
-  const mockData = searchType === "Movies" ? MoviebySearch : seriesSearchData;
-
-  const handleWindowResize = () => {
-    if (window.innerWidth >= 960) setOpenNav(false);
-  };
+  // Debounced suggestions. Responses from older queries are ignored.
+  useEffect(() => {
+    const q = query.trim();
+    if (!q) {
+      setResults([]);
+      setOpen(false);
+      setFailed(false);
+      return undefined;
+    }
+    const timer = setTimeout(async () => {
+      const mine = ++requestId.current;
+      const thunk = type === "movies" ? getMoviebySearch : getSeriesBySearch;
+      try {
+        const found = await dispatch(thunk(q)).unwrap();
+        if (mine !== requestId.current) return;
+        setResults((found ?? []).slice(0, 6));
+        setFailed(false);
+        setActive(-1);
+        setOpen(true);
+      } catch {
+        if (mine !== requestId.current) return;
+        setResults([]);
+        setFailed(true);
+        setOpen(true);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query, type, dispatch]);
 
   useEffect(() => {
-    window.addEventListener("resize", handleWindowResize);
-    return () => {
-      window.removeEventListener("resize", handleWindowResize);
+    const onDown = (e) => {
+      if (root.current && !root.current.contains(e.target)) setOpen(false);
     };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
   }, []);
 
-  useEffect(() => {
-    if (typeof searchQuery === "string" && searchQuery.trim()) {
-      setError(null);
-
-      if (searchType === "Movies") {
-        dispatch(getMoviebySearch(searchQuery));
-      } else if (searchType === "Series") {
-        dispatch(getSeriesBySearch(searchQuery));
-      } else {
-        setError("Invalid search type");
-      }
-      setSuggestionsVisible(true);
-    } else {
-      setSuggestions([]);
-      setSuggestionsVisible(false);
-      setSelectedItemId(null);
-    }
-  }, [searchQuery, dispatch, searchType]);
-
-  useEffect(() => {
-    if (searchType === "Movies" && getMoviebySearchError) {
-      setError("Failed to fetch movie suggestions");
-      setSuggestions([]);
-      setSuggestionsVisible(false);
-    } else if (searchType === "Series" && getSeriesBySearchError) {
-      setError("Failed to fetch series suggestions");
-      setSuggestions([]);
-      setSuggestionsVisible(false);
-    }
-  }, [getMoviebySearchError, getSeriesBySearchError, searchType]);
-
-  useEffect(() => {
-    if (
-      mockData &&
-      Array.isArray(mockData) &&
-      typeof searchQuery === "string" &&
-      searchQuery.trim() &&
-      isSuggestionsVisible
-    ) {
-      const filtered = mockData.filter((item) => {
-        const itemName = item.title || item.name || item.original_name || "";
-        return itemName.toLowerCase().includes(searchQuery.toLowerCase());
-      });
-      setSuggestions(filtered);
-    } else {
-      setSuggestions([]);
-    }
-  }, [mockData, searchQuery, isSuggestionsVisible]);
-
-  const toggleSearchType = () => {
-    const newType = searchType === "Movies" ? "Series" : "Movies";
-    setSearchType(newType);
-    setSelectedItemId(null);
-    setSearchQuery("");
-    setSuggestions([]);
-    setError(null);
+  const finish = () => {
+    setQuery("");
+    setResults([]);
+    setOpen(false);
+    onNavigate?.();
   };
 
-  const handleInputChange = (e) => {
-    const value = e.target.value;
-    setSearchQuery(value);
-    setSelectedItemId(null);
+  const go = (item) => {
+    navigate(`/${type === "movies" ? "movie" : "series"}/${item.id}`);
+    finish();
   };
 
-  const handleClearInput = () => {
-    setSearchQuery("");
-    setSuggestions([]);
-    setSuggestionsVisible(false);
-    setSelectedItemId(null);
-    setError(null);
-  };
-
-  const handleSuggestionClick = (suggestion) => {
-    const title =
-      suggestion.title || suggestion.name || suggestion.original_name;
-    if (title && suggestion.id) {
-      setSearchQuery(title);
-      setSelectedItemId(suggestion.id);
-      setSuggestions([]);
-      setSuggestionsVisible(false);
-    } else {
-      setSearchQuery("");
-      setSelectedItemId(null);
-      setSuggestions([]);
-      setSuggestionsVisible(false);
-    }
-  };
-
-  const handleSearch = () => {
-    if (typeof searchQuery !== "string" || searchQuery.trim() === "") {
-      setError("Please enter a search query");
+  const submit = (e) => {
+    e.preventDefault();
+    if (open && active >= 0 && results[active]) {
+      go(results[active]);
       return;
     }
-
-    if (selectedItemId) {
-      const path =
-        searchType === "Movies"
-          ? `/movie/${selectedItemId}`
-          : `/series/${selectedItemId}`;
-      navigate(path);
-      setSelectedItemId(null);
-      setSearchQuery("");
-      setSuggestions([]);
-      setSuggestionsVisible(false);
-      setError(null);
-      return;
-    }
-
-    const matchedItem = suggestions.find((item) => {
-      const itemName = item.title || item.name || item.original_name || "";
-      return itemName.toLowerCase() === searchQuery.toLowerCase();
-    });
-
-    if (matchedItem && matchedItem.id) {
-      const path =
-        searchType === "Movies"
-          ? `/movie/${matchedItem.id}`
-          : `/series/${matchedItem.id}`;
-      navigate(path);
-    } else {
-      if (searchType !== "Movies" && searchType !== "Series") {
-        setError("Invalid search type");
-        return;
-      }
-      const normalizedSearchType = searchType.toLowerCase();
-      const searchPath = `/search/${normalizedSearchType}/${encodeURIComponent(
-        searchQuery
-      )}`;
-      navigate(searchPath);
-    }
-
-    setSearchQuery("");
-    setSuggestions([]);
-    setSuggestionsVisible(false);
-    setError(null);
+    const q = query.trim();
+    if (!q) return;
+    navigate(`/search/${type}/${encodeURIComponent(q)}`);
+    finish();
   };
 
-  const renderSuggestions = () => {
-    if (
-      !searchRef.current ||
-      !isSuggestionsVisible ||
-      suggestions.length === 0
-    ) {
-      return null;
+  const onKeyDown = (e) => {
+    if (e.key === "Escape") {
+      setOpen(false);
+    } else if (e.key === "ArrowDown" && results.length) {
+      e.preventDefault();
+      setOpen(true);
+      setActive((i) => (i + 1) % results.length);
+    } else if (e.key === "ArrowUp" && results.length) {
+      e.preventDefault();
+      setActive((i) => (i <= 0 ? results.length - 1 : i - 1));
     }
+  };
 
-    if (window.innerWidth >= 1120) {
-      const rect = searchRef.current.getBoundingClientRect();
-      const topPosition = rect.bottom + window.scrollY + 58;
-      const leftPosition = rect.left + 990;
-
-      return createPortal(
-        <div
-          className="fixed w-full max-w-[300px] z-50"
-          style={{
-            top: `${topPosition}px`,
-            left: `${leftPosition}px`,
-          }}
-        >
-          <div className="max-h-72 overflow-auto border border-gray-300 rounded-md bg-blue-gray-900 text-white shadow-2xl">
-            <ul role="listbox">
-              {suggestions.map((suggestion, index) => (
-                <li
-                  key={index}
-                  className="flex items-center gap-2 p-2 cursor-pointer hover:bg-gray-100 hover:text-black"
-                  onMouseDown={() => handleSuggestionClick(suggestion)}
-                  onTouchStart={() => handleSuggestionClick(suggestion)}
-                  role="option"
-                  aria-selected={selectedItemId === suggestion.id}
-                >
-                  <img
-                    src={
-                      suggestion.poster_path
-                        ? `https://image.tmdb.org/t/p/w92/${suggestion.poster_path}`
-                        : "https://png.pngtree.com/element_our/20200610/ourmid/pngtree-character-default-avatar-image_2237203.jpg"
-                    }
-                    alt={
-                      suggestion.title ||
-                      suggestion.name ||
-                      suggestion.original_name ||
-                      "No title"
-                    }
-                    className="w-10 h-14 object-cover rounded"
-                  />
-                  <span>
-                    {suggestion.title ||
-                      suggestion.name ||
-                      suggestion.original_name ||
-                      "No title"}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>,
-        document.body
-      );
-    }
-
-    if (window.innerWidth >= 960) {
-      const rect = searchRef.current.getBoundingClientRect();
-      const topPosition = rect.bottom + window.scrollY + 58;
-      const leftPosition = rect.left + 515;
-
-      return createPortal(
-        <div
-          className="fixed w-full max-w-[300px] z-50"
-          style={{
-            top: `${topPosition}px`,
-            left: `${leftPosition}px`,
-          }}
-        >
-          <div className="max-h-72 overflow-auto border border-gray-300 rounded-md bg-blue-gray-900 text-white shadow-2xl">
-            <ul role="listbox">
-              {suggestions.map((suggestion, index) => (
-                <li
-                  key={index}
-                  className="flex items-center gap-2 p-2 cursor-pointer hover:bg-gray-100 hover:text-black"
-                  onMouseDown={() => handleSuggestionClick(suggestion)}
-                  onTouchStart={() => handleSuggestionClick(suggestion)}
-                  role="option"
-                  aria-selected={selectedItemId === suggestion.id}
-                >
-                  <img
-                    src={
-                      suggestion.poster_path
-                        ? `https://image.tmdb.org/t/p/w92/${suggestion.poster_path}`
-                        : "https://png.pngtree.com/element_our/20200610/ourmid/pngtree-character-default-avatar-image_2237203.jpg"
-                    }
-                    alt={
-                      suggestion.title ||
-                      suggestion.name ||
-                      suggestion.original_name ||
-                      "No title"
-                    }
-                    className="w-10 h-14 object-cover rounded"
-                  />
-                  <span>
-                    {suggestion.title ||
-                      suggestion.name ||
-                      suggestion.original_name ||
-                      "No title"}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>,
-        document.body
-      );
-    }
-    const rect = searchRef.current.getBoundingClientRect();
-    const topPosition = rect.bottom + window.scrollY;
-    const leftPosition = rect.left + rect.width / 2;
-
-    return createPortal(
-      <div
-        className="fixed w-full max-w-[300px] z-50"
-        style={{
-          top: `${topPosition}px`,
-          left: `${leftPosition}px`,
-          transform: "translateX(-50%)",
-        }}
+  return (
+    <form
+      ref={root}
+      role="search"
+      onSubmit={submit}
+      className="relative flex w-full items-center gap-2"
+    >
+      <label htmlFor={`${idPrefix}-type`} className="sr-only">
+        Search in
+      </label>
+      <select
+        id={`${idPrefix}-type`}
+        value={type}
+        onChange={(e) => setType(e.target.value)}
+        className="h-10 rounded-md border border-line bg-surface px-2 text-sm text-gray-100"
       >
-        <div className="max-h-72 overflow-auto border border-gray-300 rounded-md bg-blue-gray-900 text-white shadow-2xl">
-          <ul role="listbox">
-            {suggestions.map((suggestion, index) => (
+        <option value="movies">Movies</option>
+        <option value="series">Series</option>
+      </select>
+
+      <div className="relative min-w-0 flex-1">
+        <label htmlFor={`${idPrefix}-q`} className="sr-only">
+          Search {type}
+        </label>
+        <HiMagnifyingGlass
+          aria-hidden="true"
+          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+        />
+        <input
+          id={`${idPrefix}-q`}
+          type="search"
+          role="combobox"
+          aria-expanded={open}
+          aria-controls={listId}
+          aria-autocomplete="list"
+          aria-activedescendant={
+            active >= 0 ? `${idPrefix}-opt-${active}` : undefined
+          }
+          autoComplete="off"
+          placeholder={`Search ${type}`}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={onKeyDown}
+          onFocus={() => results.length && setOpen(true)}
+          className="h-10 w-full rounded-md border border-line bg-surface pl-9 pr-3 text-sm text-gray-50 placeholder:text-gray-400"
+        />
+
+        {open && (
+          <ul
+            id={listId}
+            role="listbox"
+            aria-label="Suggestions"
+            className="absolute left-0 right-0 top-full z-50 mt-2 max-h-96 overflow-auto rounded-lg border border-line bg-surface py-1 shadow-2xl shadow-black/60 lg:left-auto lg:w-96"
+          >
+            {failed && (
+              <li className="px-3 py-2 text-sm text-gray-300">
+                Suggestions are unavailable right now.
+              </li>
+            )}
+            {!failed && results.length === 0 && (
+              <li className="px-3 py-2 text-sm text-gray-300">No matches.</li>
+            )}
+            {results.map((item, i) => (
               <li
-                key={index}
-                className="flex items-center gap-2 p-2 cursor-pointer hover:bg-gray-100 hover:text-black"
-                onMouseDown={() => handleSuggestionClick(suggestion)}
-                onTouchStart={() => handleSuggestionClick(suggestion)}
+                key={item.id}
+                id={`${idPrefix}-opt-${i}`}
                 role="option"
-                aria-selected={selectedItemId === suggestion.id}
+                aria-selected={i === active}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  go(item);
+                }}
+                onMouseEnter={() => setActive(i)}
+                className={`flex cursor-pointer items-center gap-3 px-3 py-2 text-sm ${
+                  i === active ? "bg-white/10 text-gray-50" : "text-gray-200"
+                }`}
               >
-                <img
-                  src={
-                    suggestion.poster_path
-                      ? `https://image.tmdb.org/t/p/w92/${suggestion.poster_path}`
-                      : "https://png.pngtree.com/element_our/20200610/ourmid/pngtree-character-default-avatar-image_2237203.jpg"
-                  }
-                  alt={
-                    suggestion.title ||
-                    suggestion.name ||
-                    suggestion.original_name ||
-                    "No title"
-                  }
-                  className="w-10 h-14 object-cover rounded"
-                />
-                <span>
-                  {suggestion.title ||
-                    suggestion.name ||
-                    suggestion.original_name ||
-                    "No title"}
+                {tmdbImage(item.poster_path, "w92") ? (
+                  <img
+                    src={tmdbImage(item.poster_path, "w92")}
+                    alt=""
+                    className="h-14 w-10 shrink-0 rounded bg-gray-800 object-cover"
+                  />
+                ) : (
+                  <span className="h-14 w-10 shrink-0 rounded bg-gray-800" />
+                )}
+                <span className="min-w-0">
+                  <span className="block truncate font-medium">
+                    {titleOf(item)}
+                  </span>
+                  <span className="text-xs text-gray-400">
+                    {yearOf(item.release_date || item.first_air_date)}
+                  </span>
                 </span>
               </li>
             ))}
           </ul>
-        </div>
-      </div>,
-      document.body
-    );
-  };
+        )}
+      </div>
+
+      <button type="submit" className="btn-primary !min-h-10 shrink-0">
+        Search
+      </button>
+    </form>
+  );
+}
+
+const Header = () => {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const uid = useId().replace(/:/g, "");
 
   return (
-    <div>
-      <Navbar
-        fullWidth
-        className="w-full bg-blue-gray-900 text-white py-3 shadow-md rounded-none"
+    <header className="sticky top-0 z-40 border-b border-line bg-ink/90 backdrop-blur">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-2 focus:z-50 focus:rounded focus:bg-accent focus:px-3 focus:py-2 focus:text-accent-ink"
       >
-        <div className="flex items-center justify-between w-full px-6">
-          <div className="flex items-center gap-8">
-            <Typography
-              as={Link}
-              to="/"
-              variant="h6"
-              className="cursor-pointer text-white"
-            >
-              Movies App
-            </Typography>
-            <div className="hidden lg:flex">
-              <NavList />
-            </div>
-          </div>
+        Skip to content
+      </a>
+      <div className="container-page flex h-16 items-center gap-6">
+        <Link
+          to="/"
+          className="font-display text-xl font-semibold tracking-tight text-gray-50"
+        >
+          Movies<span className="text-accent"> App</span>
+        </Link>
 
-          <div className="hidden lg:flex items-center gap-2" ref={searchRef}>
-            <div className="relative min-w-[200px]">
-              <div className="relative">
-                <input
-                  key={`search-input-lg-${searchType}`}
-                  placeholder={`Search ${searchType}`}
-                  value={searchQuery}
-                  onChange={handleInputChange}
-                  onBlur={() =>
-                    setTimeout(() => setSuggestionsVisible(false), 100)
-                  }
-                  onFocus={() => {
-                    if (
-                      typeof searchQuery === "string" &&
-                      searchQuery.trim() &&
-                      suggestions.length > 0
-                    )
-                      setSuggestionsVisible(true);
-                  }}
-                  className="text-black bg-white placeholder-black w-full min-w-[200px] p-2 pr-8 rounded-md"
-                  aria-label={`Search ${searchType}`}
-                />
-                {searchQuery && (
-                  <IoClose
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-black cursor-pointer"
-                    onClick={handleClearInput}
-                    aria-label="Clear search"
-                  />
-                )}
-              </div>
-              {error && (
-                <span className="text-red-500 text-sm mt-1">{error}</span>
-              )}
-              {renderSuggestions()}
-            </div>
+        <nav aria-label="Main" className="hidden lg:block">
+          <ul className="flex items-center gap-2">
+            {LINKS.map((l) => (
+              <li key={l.to}>
+                <NavLink to={l.to} end={l.end} className={linkClass}>
+                  {l.label}
+                </NavLink>
+              </li>
+            ))}
+          </ul>
+        </nav>
 
-            <Button
-              onClick={handleSearch}
-              color="red"
-              variant="outlined"
-              size="sm"
-              className="border-2 hover:text-white hover:bg-red-900 transition whitespace-nowrap px-2 py-2 min-w-[80px]"
-            >
-              Search
-            </Button>
-            <Button
-              onClick={toggleSearchType}
-              size="sm"
-              color="green"
-              variant="outlined"
-              className="border-2 border-green-500 text-green-500 hover:bg-green-900 hover:text-white transition whitespace-nowrap px-2 py-2 min-w-[120px]"
-            >
-              {searchType === "Movies" ? "Search Series" : "Search Movies"}
-            </Button>
-          </div>
-
-          <IconButton
-            variant="text"
-            className="lg:hidden text-white"
-            onClick={() => setOpenNav(!openNav)}
-          >
-            <IoMenu className="h-6 w-6 text-white" />
-          </IconButton>
+        <div className="ml-auto hidden w-full max-w-lg lg:block">
+          <SearchBox idPrefix={`${uid}-d`} />
         </div>
-      </Navbar>
 
-      <Collapse open={openNav} className="lg:hidden pb-4">
-        <div className="pt-4">
-          <NavList />
-          <div
-            className="flex flex-col gap-2 mt-4 justify-center items-center w-full relative"
-            ref={searchRef}
-          >
-            <div className="relative w-full max-w-[300px]">
-              <div className="relative">
-                <input
-                  key={`search-input-sm-${searchType}`}
-                  placeholder={`Search ${searchType}`}
-                  value={searchQuery}
-                  onChange={handleInputChange}
-                  onBlur={() =>
-                    setTimeout(() => setSuggestionsVisible(false), 100)
-                  }
-                  onFocus={() => {
-                    if (
-                      typeof searchQuery === "string" &&
-                      searchQuery.trim() &&
-                      suggestions.length > 0
-                    )
-                      setSuggestionsVisible(true);
-                  }}
-                  className="text-black bg-white placeholder-black w-full p-2 pr-8 rounded-md"
-                  aria-label={`Search ${searchType}`}
-                />
-                {searchQuery && (
-                  <IoClose
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-black cursor-pointer"
-                    onClick={handleClearInput}
-                    aria-label="Clear search"
-                  />
-                )}
-              </div>
-              {error && (
-                <span className="text-red-500 text-sm mt-1">{error}</span>
-              )}
-              {renderSuggestions()}
-            </div>
+        <button
+          type="button"
+          onClick={() => setMenuOpen((v) => !v)}
+          aria-expanded={menuOpen}
+          aria-controls="mobile-menu"
+          aria-label={menuOpen ? "Close menu" : "Open menu"}
+          className="btn-ghost ml-auto !p-2 lg:hidden"
+        >
+          {menuOpen ? (
+            <HiXMark aria-hidden="true" className="h-6 w-6" />
+          ) : (
+            <HiBars3 aria-hidden="true" className="h-6 w-6" />
+          )}
+        </button>
+      </div>
 
-            <Button
-              onClick={toggleSearchType}
-              size="sm"
-              color="green"
-              variant="outlined"
-              className="border-2 border-green-500 text-green-500 hover:bg-green-500 hover:text-white transition whitespace-nowrap px-2 py-2 min-w-[120px] mx-auto"
-            >
-              {searchType === "Movies" ? "Search Series" : "Search Movies"}
-            </Button>
-            <Button
-              onClick={handleSearch}
-              size="sm"
-              color="red"
-              variant="outlined"
-              className="border-2 hover:text-white hover:bg-red-900 transition whitespace-nowrap px-2 py-2 min-w-[80px] mx-auto"
-            >
-              Search
-            </Button>
+      {menuOpen && (
+        <div id="mobile-menu" className="border-t border-line lg:hidden">
+          <div className="container-page space-y-4 py-4">
+            <nav aria-label="Main mobile">
+              <ul className="grid gap-1">
+                {LINKS.map((l) => (
+                  <li key={l.to}>
+                    <NavLink
+                      to={l.to}
+                      end={l.end}
+                      onClick={() => setMenuOpen(false)}
+                      className={(s) => `block ${linkClass(s)} !py-2.5 text-base`}
+                    >
+                      {l.label}
+                    </NavLink>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+            <SearchBox
+              idPrefix={`${uid}-m`}
+              onNavigate={() => setMenuOpen(false)}
+            />
           </div>
         </div>
-      </Collapse>
-    </div>
+      )}
+    </header>
   );
 };
 
