@@ -1,87 +1,100 @@
-import React, { Fragment, useEffect } from "react";
+import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
 import {
   getMovieCastDetails,
   getMovieDetails,
 } from "../../Redux/DetailsMoviesSlice/movieDetailsSlice";
-import { CrewCard } from "../components/CrewCard";
-import { CastCard } from "../components/CastCard";
 import CastCrewPageHeader from "../components/CastCrewPageHeader";
+import PersonRow from "../../ui/PersonRow";
+import Requesterror from "../../apiRequestError-Loading/Requesterror";
+import Loading from "../../apiRequestError-Loading/Loading";
 
 const MovieCastCrew = () => {
+  const { id } = useParams();
+  const dispatch = useDispatch();
   const {
     movieDetails,
-    moviecrew,
     moviecastDetails,
+    moviecastDetailsLoading,
+    moviecastDetailsError,
     arrangecrewacordingtorole,
-  } = useSelector((state) => {
-    return state.onemoviedetails;
-  });
-  const dispatch = useDispatch();
-  const { id } = useParams();
+  } = useSelector((state) => state.onemoviedetails);
+
+  const load = () => {
+    dispatch(getMovieDetails(id));
+    dispatch(getMovieCastDetails(id));
+  };
+
   useEffect(() => {
     dispatch(getMovieDetails(id));
     dispatch(getMovieCastDetails(id));
-  }, [id]);
+  }, [id, dispatch]);
+
+  if (moviecastDetailsError) {
+    return <Requesterror title="Could not load the cast" onRetry={load} />;
+  }
+
+  const cast = moviecastDetails?.cast ?? [];
+  const crew = moviecastDetails?.crew ?? [];
+  const sameMovie = String(movieDetails?.id) === String(id);
 
   return (
     <div>
-      <div>
-        <CastCrewPageHeader
-          poster_path={movieDetails.poster_path}
-          release_date={movieDetails.release_date}
-          title={movieDetails.title}
-        />
-      </div>
-      <div className="flex flex-col items-center justify-center lg:flex-row  lg:items-start lg:justify-evenly  bg-transparent ">
-        <section className=" flex flex-col items-center">
-          <div className="text-white flex gap-2 self-start pl-10 items-center">
-            <span className="text-[1.9em] ml-2 ">cast </span>{" "}
-            <span className="text-blue-500 text-[1.8em] ">
-              {moviecastDetails.cast?.length}
-            </span>
-          </div>
-          {moviecastDetails.cast?.map((actor, index) => {
-            return (
-              <CastCard
-                character={actor.character}
-                name={actor.name}
-                profile_path={actor.profile_path}
-                key={index - 1}
-              />
-            );
-          })}
-        </section>
+      <CastCrewPageHeader
+        poster_path={sameMovie ? movieDetails.poster_path : null}
+        release_date={sameMovie ? movieDetails.release_date : ""}
+        title={sameMovie ? movieDetails.title : ""}
+        backTo={`/movie/${id}`}
+      />
+      {moviecastDetailsLoading ? (
+        <Loading />
+      ) : (
+        <div className="container-page grid gap-10 py-8 lg:grid-cols-2">
+          <section aria-labelledby="cast-h">
+            <h2 id="cast-h" className="mb-3 font-display text-2xl font-semibold text-gray-50">
+              Cast <span className="text-accent">{cast.length}</span>
+            </h2>
+            <ul>
+              {cast.map((actor) => (
+                <li key={`${actor.id}-${actor.credit_id ?? actor.character}`}>
+                  <PersonRow
+                    to={`/person/${actor.id}`}
+                    name={actor.name}
+                    role={actor.character}
+                    profilePath={actor.profile_path}
+                  />
+                </li>
+              ))}
+            </ul>
+          </section>
 
-        <section className="  flex flex-col items-center">
-          <div className="text-white self-start pl-10">
-            <span className="text-[1.9em] ">crew </span>{" "}
-            <span className="text-blue-500 text-[1.8em]">
-              {moviecrew.length}
-            </span>
-          </div>
-          {Object.entries(arrangecrewacordingtorole).map((jobArr, index) => {
-            return (
-              <Fragment key={index}>
-                <h2 className="text-blue-500 text-center text-[1.5em] md:text-[2em] font-bold ">
-                  {jobArr[0]}
-                </h2>
-                {jobArr[1].map((person, index) => {
-                  return (
-                    <CrewCard
-                      key={index}
-                      job={person.job}
-                      name={person.name}
-                      profile_path={person.profile_path}
-                    />
-                  );
-                })}
-              </Fragment>
-            );
-          })}
-        </section>
-      </div>
+          <section aria-labelledby="crew-h">
+            <h2 id="crew-h" className="mb-3 font-display text-2xl font-semibold text-gray-50">
+              Crew <span className="text-accent">{crew.length}</span>
+            </h2>
+            {Object.entries(arrangecrewacordingtorole ?? {}).map(([dept, people]) => (
+              <div key={dept} className="mb-6">
+                <h3 className="mb-1 text-xs font-semibold uppercase tracking-[0.2em] text-accent">
+                  {dept}
+                </h3>
+                <ul>
+                  {people.map((p) => (
+                    <li key={`${p.id}-${p.credit_id ?? p.job}`}>
+                      <PersonRow
+                        to={`/person/${p.id}`}
+                        name={p.name}
+                        role={p.job}
+                        profilePath={p.profile_path}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </section>
+        </div>
+      )}
     </div>
   );
 };

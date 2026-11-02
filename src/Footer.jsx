@@ -1,21 +1,39 @@
-const Footer = () => {
-  return (
-    <div className="flex flex-col items-center text-white p-4">
-      <div className="text-center text-xs sm:text-sm">
-        <span className="flex items-center gap-2">
-          ©2025
-          <p className="text-2xl text-blue-900 inline-block">React Movies</p>,
-          All Rights Reserved
-        </span>
-      </div>
+import { Link } from "react-router-dom";
 
-      <div className="flex justify-center gap-4 mt-2 sm:mt-4 text-red-500 text-xs sm:text-sm flex-wrap">
-        <p>About Us</p>
-        <p>Terms of Use</p>
-        <p>Privacy</p>
+const Footer = () => (
+  <footer className="mt-16 border-t border-line">
+    <div className="container-page flex flex-col gap-4 py-8 text-sm text-gray-400 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p className="font-display text-lg text-gray-100">
+          Movies<span className="text-accent"> App</span>
+        </p>
+        <p className="mt-1 max-w-md">
+          A portfolio project by mohamed-elrokapy. Movie and series data
+          comes from TMDB. This product uses the TMDB API but is not endorsed
+          or certified by TMDB.
+        </p>
       </div>
+      <nav aria-label="Footer">
+        <ul className="flex gap-5">
+          <li>
+            <Link to="/movies" className="hover:text-gray-100">
+              Movies
+            </Link>
+          </li>
+          <li>
+            <Link to="/series" className="hover:text-gray-100">
+              Series
+            </Link>
+          </li>
+          <li>
+            <Link to="/contact-us" className="hover:text-gray-100">
+              Contact
+            </Link>
+          </li>
+        </ul>
+      </nav>
     </div>
-  );
-};
+  </footer>
+);
 
 export default Footer;
