@@ -1,3 +1,4 @@
+import { TMDB_AUTH } from "../../../api/tmdb";
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
 
@@ -10,7 +11,7 @@ export const getonepagemovies = createAsyncThunk(
         method: "get",
         headers: {
           Authorization:
-            "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI1MDdmZGZlYWU0OGU4N2U0NTQ4YTM5ZmZkZjczYmU3NiIsIm5iZiI6MTc0NTYwMzQ2OC42MDcsInN1YiI6IjY4MGJjYjhjOGJjZWE2NmE4NmFiMDQ0MCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.fcri0wbTR6owlEOMJmZVOYPPUKpPm2vHqUCwEtqGAw8",
+            TMDB_AUTH,
           accept: "application/json",
         },
       };
@@ -20,7 +21,7 @@ export const getonepagemovies = createAsyncThunk(
         config
       );
 
-      if (req.ok == false) {
+      if (!req.ok) {
         throw new Error("Failed to fetch movies");
       }
 
@@ -45,6 +46,7 @@ const moviesSlice = createSlice({
   extraReducers: (builder) => {
     builder.addCase(getonepagemovies.pending, (state) => {
       state.onepagemoviesloading = true;
+      state.onepagemoviesfailedrequest = "";
     });
     builder.addCase(getonepagemovies.fulfilled, (state, action) => {
       state.onepagemoviesloading = false;
@@ -55,8 +57,6 @@ const moviesSlice = createSlice({
       state.onepagemoviesloading = false;
 
       state.onepagemoviesfailedrequest = action.payload;
-
-      console.log(action);
     });
   },
 });

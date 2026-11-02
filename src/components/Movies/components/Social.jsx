@@ -1,86 +1,87 @@
-import React, { useEffect } from "react";
-import { AiFillHome } from "react-icons/ai";
-import { BsFacebook } from "react-icons/bs";
-import { FaTwitter } from "react-icons/fa";
-import { FaInstagram } from "react-icons/fa";
-import { BsWikipedia } from "react-icons/bs";
-import { Link, useParams } from "react-router-dom";
+import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useParams } from "react-router-dom";
+import { FaFacebook, FaInstagram, FaXTwitter } from "react-icons/fa6";
+import { BsWikipedia } from "react-icons/bs";
+import { HiGlobeAlt } from "react-icons/hi2";
 import { getMovieSocialLinks } from "../../Redux/DetailsMoviesSlice/movieDetailsSlice";
 
+const money = (n) =>
+  n > 0 ? `$${Number(n).toLocaleString("en-US")}` : "Not available";
+
+// Facts and external links for the sidebar of the movie page.
 const Social = ({ moviedetails }) => {
   const dispatch = useDispatch();
   const { id } = useParams();
-
-  const { MovieSocialLinks } = useSelector((state) => {
-    return state.onemoviedetails;
-  });
+  const links = useSelector((state) => state.onemoviedetails.MovieSocialLinks);
 
   useEffect(() => {
     dispatch(getMovieSocialLinks(id));
-  }, [id]);
+  }, [id, dispatch]);
+
+  const external = [
+    links.facebook_id && {
+      href: `https://www.facebook.com/${links.facebook_id}`,
+      label: "Facebook",
+      Icon: FaFacebook,
+    },
+    links.twitter_id && {
+      href: `https://x.com/${links.twitter_id}`,
+      label: "X (Twitter)",
+      Icon: FaXTwitter,
+    },
+    links.instagram_id && {
+      href: `https://www.instagram.com/${links.instagram_id}`,
+      label: "Instagram",
+      Icon: FaInstagram,
+    },
+    links.wikidata_id && {
+      href: `https://www.wikidata.org/wiki/${links.wikidata_id}`,
+      label: "Wikidata",
+      Icon: BsWikipedia,
+    },
+    moviedetails.homepage && {
+      href: moviedetails.homepage,
+      label: "Official site",
+      Icon: HiGlobeAlt,
+    },
+  ].filter(Boolean);
+
+  const facts = [
+    ["Status", moviedetails.status],
+    ["Original language", moviedetails.original_language?.toUpperCase()],
+    ["Budget", money(moviedetails.budget)],
+    ["Revenue", money(moviedetails.revenue)],
+  ];
 
   return (
-    <div className="w-[300px] flex flex-col gap-4   ">
-      <div className="flex items-center justify-evenly">
-        {" "}
-        {MovieSocialLinks.facebook_id && (
-          <Link to={`https://www.facebook.com/${MovieSocialLinks.facebook_id}`}>
-            <span>
-              <BsFacebook />
-            </span>
-          </Link>
-        )}
-        {MovieSocialLinks.twitter_id && (
-          <Link to={`https://www.twitter.com/${MovieSocialLinks.twitter_id}`}>
-            <span>
-              <FaTwitter />
-            </span>
-          </Link>
-        )}
-        {MovieSocialLinks.instagram_id && (
-          <Link>
-            <span
-              to={`https://www.instagram.com/${MovieSocialLinks.instagram_id}`}>
-              <FaInstagram />
-            </span>
-          </Link>
-        )}
-        <Link
-          to={
-            MovieSocialLinks.wikidata_id &&
-            `https://www.wikidata.org/wiki/${MovieSocialLinks.wikidata_id}`
-          }>
-          <span>
-            <BsWikipedia />
-          </span>
-        </Link>
-        <Link to={moviedetails.homepage}>
-          <span>
-            <AiFillHome />
-          </span>
-        </Link>{" "}
-      </div>
-      <div>
-        <p className="flex flex-col">
-          <span>Status</span>{" "}
-          <span className="text-blue-600">{moviedetails.status}</span>
-        </p>{" "}
-        <p className="flex flex-col">
-          <span>Original Language</span>{" "}
-          <span className="text-blue-600">
-            {moviedetails.original_language}
-          </span>
-        </p>{" "}
-        <p className="flex flex-col">
-          <span>Budget</span>{" "}
-          <span className="text-blue-600">${moviedetails.budget}</span>
-        </p>{" "}
-        <p className="flex flex-col">
-          <span>Revenue</span>{" "}
-          <span className="text-blue-600">${moviedetails.revenue}</span>
-        </p>{" "}
-      </div>
+    <div className="space-y-5">
+      {external.length > 0 && (
+        <ul className="flex flex-wrap gap-3">
+          {external.map(({ href, label, Icon: Glyph }) => (
+            <li key={label}>
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={label}
+                title={label}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-line text-gray-200 transition-colors hover:border-accent hover:text-accent"
+              >
+                <Glyph aria-hidden="true" className="h-4 w-4" />
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+      <dl className="space-y-3">
+        {facts.map(([k, v]) => (
+          <div key={k}>
+            <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">{k}</dt>
+            <dd className="text-sm text-gray-100">{v || "Not available"}</dd>
+          </div>
+        ))}
+      </dl>
     </div>
   );
 };
