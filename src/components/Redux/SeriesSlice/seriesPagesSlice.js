@@ -40,6 +40,7 @@ const seriesSlice = createSlice({
   extraReducers: (builder) => {
     builder.addCase(getseries.pending, (state) => {
       state.onepageseriesloading = true;
+      state.onepageseriesfailedrequest = "";
     });
     builder.addCase(getseries.fulfilled, (state, action) => {
       state.onepageseriesloading = false;

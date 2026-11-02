@@ -20,6 +20,7 @@ const moviesSlice = createSlice({
   initialState: {
     movies: [],
     loading: false,
+    loaded: false,
     error: null,
   },
   reducers: {},
@@ -30,6 +31,7 @@ const moviesSlice = createSlice({
     });
     builder.addCase(fetchMovies.fulfilled, (state, action) => {
       state.loading = false;
+      state.loaded = true;
       state.movies = action.payload;
     });
     builder.addCase(fetchMovies.rejected, (state, action) => {

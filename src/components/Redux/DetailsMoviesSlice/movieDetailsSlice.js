@@ -85,7 +85,6 @@ export const getMovieTrialVideo = createAsyncThunk(
       const video = await res.results.find((result) => {
         return result.type === "Trailer";
       });
-      // console.log(video);
 
       if (video) {
         return `https://www.youtube.com/embed/${video.key}?modestbranding=1&autohide=1&showinfo=0`;
@@ -174,7 +173,6 @@ export const getMoviecollection = createAsyncThunk(
         throw new Error("faild to fetch data");
       }
       const res = await req.json();
-      console.log(1111111111, res);
       return res;
     } catch (error) {
       return rejectWithValue(error.message);
@@ -397,7 +395,7 @@ export const getMoviebySearch = createAsyncThunk(
       };
 
       const req = await fetch(
-        `https://api.themoviedb.org/3/search/movie?query=${movieName}`,
+        `https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(movieName)}`,
         config
       );
       if (!req.ok) {
@@ -623,6 +621,7 @@ const movieDetailSlice = createSlice({
 
     builder.addCase(getMovieDetails.pending, (state) => {
       state.movieDetailsLoading = true;
+      state.movieDetailsError = "";
     });
     builder.addCase(getMovieDetails.fulfilled, (state, action) => {
       state.movieDetailsLoading = false;
@@ -634,6 +633,7 @@ const movieDetailSlice = createSlice({
     });
     builder.addCase(getMovieCastDetails.pending, (state) => {
       state.moviecastDetailsLoading = true;
+      state.moviecastDetailsError = "";
     });
     builder.addCase(getMovieCastDetails.fulfilled, (state, action) => {
       state.moviecastDetails = action.payload;

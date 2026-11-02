@@ -390,7 +390,7 @@ export const getSeriesBySearch = createAsyncThunk(
       };
 
       const req = await fetch(
-        `https://api.themoviedb.org/3/search/tv?query=${seriesName}`,
+        `https://api.themoviedb.org/3/search/tv?query=${encodeURIComponent(seriesName)}`,
         config
       );
       if (!req.ok) {

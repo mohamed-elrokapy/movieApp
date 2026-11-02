@@ -15,6 +15,9 @@ export const fetchTvShows = createAsyncThunk(
         },
       }
     );
+    if (!response.ok) {
+      throw new Error("Failed to fetch airing series");
+    }
     const data = await response.json();
     return data.results.slice(0, 20);
   }

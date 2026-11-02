@@ -21,7 +21,7 @@ export const getonepagemovies = createAsyncThunk(
         config
       );
 
-      if (req.ok == false) {
+      if (!req.ok) {
         throw new Error("Failed to fetch movies");
       }
 
@@ -46,6 +46,7 @@ const moviesSlice = createSlice({
   extraReducers: (builder) => {
     builder.addCase(getonepagemovies.pending, (state) => {
       state.onepagemoviesloading = true;
+      state.onepagemoviesfailedrequest = "";
     });
     builder.addCase(getonepagemovies.fulfilled, (state, action) => {
       state.onepagemoviesloading = false;
@@ -56,8 +57,6 @@ const moviesSlice = createSlice({
       state.onepagemoviesloading = false;
 
       state.onepagemoviesfailedrequest = action.payload;
-
-      console.log(action);
     });
   },
 });
