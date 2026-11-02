@@ -1,3 +1,66 @@
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/fraunces";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html {
+    color-scheme: dark;
+    background-color: #0b0b0a;
+  }
+
+  body {
+    @apply bg-ink font-sans text-gray-200 antialiased;
+  }
+
+  /* Visible keyboard focus everywhere. */
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid #e6b04f;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .btn {
+    @apply inline-flex min-h-[40px] items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply btn border-accent bg-accent text-accent-ink hover:bg-accent-soft;
+  }
+
+  .btn-ghost {
+    @apply btn border-line bg-transparent text-gray-100 hover:border-gray-500 hover:bg-white/5;
+  }
+
+  .skeleton {
+    @apply relative overflow-hidden bg-gray-800;
+  }
+
+  .skeleton::after {
+    content: "";
+    @apply absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/5 to-transparent;
+    animation: shimmer 1.6s infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .skeleton::after {
+    display: none;
+  }
+}
